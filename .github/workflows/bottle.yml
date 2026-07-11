@@ -1,0 +1,70 @@
+name: Bottle
+
+# Builds prebuilt bottles for token-bar so `brew install` needs no Swift toolchain.
+# Run manually (workflow_dispatch) after bumping the formula to a new version.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    steps:
+      - name: Build bottle
+        run: |
+          brew tap shrivara/tap
+          brew install --build-bottle shrivara/tap/token-bar
+          VERSION=$(brew info --json=v2 shrivara/tap/token-bar | jq -r '.formulae[0].versions.stable')
+          mkdir bottles && cd bottles
+          brew bottle --json \
+            --root-url="https://github.com/shrivara/homebrew-tap/releases/download/bottles-token-bar-${VERSION}" \
+            shrivara/tap/token-bar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bottles-${{ matrix.os }}
+          path: bottles/*
+
+  publish:
+    needs: build
+    if: ${{ !cancelled() }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: bottles
+          merge-multiple: true
+      - name: Create release with bottle assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd bottles
+          ls -la
+          VERSION=$(jq -r 'to_entries[0].value.formula.pkg_version' "$(ls *.json | head -1)")
+          TAG="bottles-token-bar-${VERSION}"
+          # Rename local bottle files (name--version) to the remote filenames brew fetches (name-version)
+          for j in *.json; do
+            local_name=$(jq -r 'to_entries[0].value.bottle.tags | to_entries[0].value.local_filename' "$j")
+            remote_name=$(jq -r 'to_entries[0].value.bottle.tags | to_entries[0].value.filename' "$j")
+            [ "$local_name" != "$remote_name" ] && mv "$local_name" "$remote_name"
+          done
+          gh release create "$TAG" --title "token-bar ${VERSION} bottles" \
+            --notes "Prebuilt bottles for token-bar ${VERSION}" *.tar.gz
+      - name: Merge bottle block into formula and push
+        run: |
+          brew tap shrivara/tap "file://$PWD"
+          brew bottle --merge --write --no-commit bottles/*.json
+          cp "$(brew --repo shrivara/tap)/Formula/token-bar.rb" Formula/token-bar.rb
+          git config user.name "Shrivara"
+          git config user.email "shrivara@users.noreply.github.com"
+          git add Formula/token-bar.rb
+          git commit -m "token-bar: add bottles"
+          git push origin HEAD:main
