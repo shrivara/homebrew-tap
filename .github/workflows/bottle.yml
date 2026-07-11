@@ -21,6 +21,7 @@ jobs:
       - name: Build bottle
         run: |
           brew tap shrivara/tap
+          brew trust shrivara/tap || true  # non-interactive CI: trust our own tap
           brew install --build-bottle shrivara/tap/token-bar
           VERSION=$(brew info --json=v2 shrivara/tap/token-bar | jq -r '.formulae[0].versions.stable')
           mkdir bottles && cd bottles
@@ -56,11 +57,16 @@ jobs:
             remote_name=$(jq -r 'to_entries[0].value.bottle.tags | to_entries[0].value.filename' "$j")
             [ "$local_name" != "$remote_name" ] && mv "$local_name" "$remote_name"
           done
-          gh release create "$TAG" --title "token-bar ${VERSION} bottles" \
-            --notes "Prebuilt bottles for token-bar ${VERSION}" *.tar.gz
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber *.tar.gz
+          else
+            gh release create "$TAG" --title "token-bar ${VERSION} bottles" \
+              --notes "Prebuilt bottles for token-bar ${VERSION}" *.tar.gz
+          fi
       - name: Merge bottle block into formula and push
         run: |
           brew tap shrivara/tap "file://$PWD"
+          brew trust shrivara/tap || true  # non-interactive CI: trust our own tap
           brew bottle --merge --write --no-commit bottles/*.json
           cp "$(brew --repo shrivara/tap)/Formula/token-bar.rb" Formula/token-bar.rb
           git config user.name "Shrivara"
