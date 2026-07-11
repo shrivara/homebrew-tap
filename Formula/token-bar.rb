@@ -1,8 +1,8 @@
 class TokenBar < Formula
   desc "Menu bar readout of today's AI usage (Claude Code, OpenCode, pi)"
   homepage "https://github.com/shrivara/token-bar"
-  url "https://github.com/shrivara/token-bar/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "3e852fb94d2df09ddf65635b81b9f82f4a1ff298bd57178f30f9a2bdfb4b0792"
+  url "https://github.com/shrivara/token-bar/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "4d14833fc36b6ef641ef0609c28c45dcd2e0cf1651b20ca6d0ac0a2a7b59d143"
   license "MIT"
 
   def install
