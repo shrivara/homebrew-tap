@@ -1,0 +1,93 @@
+name: Sync token-bar
+
+# Keep the formula in step with token-bar's automated pricing releases, then
+# start the existing bottle workflow for any newly tagged version.
+on:
+  schedule:
+    - cron: "47 09 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: sync-token-bar
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+      version: ${{ steps.sync.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Update formula to latest token-bar tag
+        id: sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest=$(
+            git ls-remote --tags --refs https://github.com/shrivara/token-bar.git |
+              sed -nE 's#.*refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)$#\1#p' |
+              sort -V |
+              tail -1
+          )
+          test -n "$latest"
+          current=$(sed -nE 's#.*refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)\.tar\.gz.*#\1#p' Formula/token-bar.rb)
+
+          echo "version=$latest" >> "$GITHUB_OUTPUT"
+          if [[ "$latest" == "$current" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Formula already uses token-bar $latest."
+            exit 0
+          fi
+
+          archive=$(mktemp)
+          trap 'rm -f "$archive"' EXIT
+          curl --fail --location --silent --show-error --retry 3 \
+            "https://github.com/shrivara/token-bar/archive/refs/tags/v${latest}.tar.gz" \
+            -o "$archive"
+          sha=$(sha256sum "$archive" | cut -d' ' -f1)
+
+          VERSION="$latest" SHA="$sha" python3 <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("Formula/token-bar.rb")
+          text = path.read_text()
+          text, urls = re.subn(
+              r'  url "https://github\.com/shrivara/token-bar/archive/refs/tags/v[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz"',
+              f'  url "https://github.com/shrivara/token-bar/archive/refs/tags/v{os.environ["VERSION"]}.tar.gz"',
+              text,
+          )
+          text, shas = re.subn(r'  sha256 "[0-9a-f]{64}"', f'  sha256 "{os.environ["SHA"]}"', text, count=1)
+          text = re.sub(r'\n  bottle do\n.*?\n  end\n', '\n', text, count=1, flags=re.DOTALL)
+          if urls != 1 or shas != 1:
+              raise SystemExit(f"Unexpected formula structure (urls={urls}, shas={shas})")
+          path.write_text(text)
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/token-bar.rb
+          git commit -m "token-bar ${latest}"
+          git push origin HEAD:main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "### Updated token-bar to ${latest}" >> "$GITHUB_STEP_SUMMARY"
+
+  bottle:
+    needs: update
+    if: needs.update.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start bottle build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.update.outputs.version }}
+        run: |
+          gh workflow run bottle.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "Started bottle build for token-bar ${VERSION}."

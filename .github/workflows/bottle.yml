@@ -28,7 +28,7 @@ jobs:
           brew bottle --json \
             --root-url="https://github.com/shrivara/homebrew-tap/releases/download/bottles-token-bar-${VERSION}" \
             shrivara/tap/token-bar
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bottles-${{ matrix.os }}
           path: bottles/*
@@ -38,8 +38,8 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: bottles
           merge-multiple: true
