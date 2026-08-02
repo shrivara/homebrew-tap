@@ -1,7 +1,7 @@
 name: Sync token-bar
 
-# Keep the formula in step with token-bar's automated pricing releases, then
-# start the existing bottle workflow for any newly tagged version.
+# Keep the formula in step with token-bar releases and start the bottle build.
+# The schedule is a fallback for a missed immediate dispatch from token-bar.
 on:
   schedule:
     - cron: "47 09 * * *"
@@ -16,15 +16,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  update:
+  sync:
     runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.sync.outputs.changed }}
-      version: ${{ steps.sync.outputs.version }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - name: Update formula to latest token-bar tag
-        id: sync
+      - name: Sync formula and start bottles
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -38,21 +35,21 @@ jobs:
           test -n "$latest"
           current=$(sed -nE 's#.*refs/tags/v([0-9]+\.[0-9]+\.[0-9]+)\.tar\.gz.*#\1#p' Formula/token-bar.rb)
 
-          echo "version=$latest" >> "$GITHUB_OUTPUT"
-          if [[ "$latest" == "$current" ]]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Formula already uses token-bar $latest."
+          if [[ "$latest" == "$current" ]] &&
+             grep -q "bottles-token-bar-${latest}" Formula/token-bar.rb; then
+            echo "Formula and bottles already use token-bar $latest."
             exit 0
           fi
 
-          archive=$(mktemp)
-          trap 'rm -f "$archive"' EXIT
-          curl --fail --location --silent --show-error --retry 3 \
-            "https://github.com/shrivara/token-bar/archive/refs/tags/v${latest}.tar.gz" \
-            -o "$archive"
-          sha=$(sha256sum "$archive" | cut -d' ' -f1)
+          if [[ "$latest" != "$current" ]]; then
+            archive=$(mktemp)
+            trap 'rm -f "$archive"' EXIT
+            curl --fail --location --silent --show-error --retry 3 \
+              "https://github.com/shrivara/token-bar/archive/refs/tags/v${latest}.tar.gz" \
+              -o "$archive"
+            sha=$(sha256sum "$archive" | cut -d' ' -f1)
 
-          VERSION="$latest" SHA="$sha" python3 <<'PY'
+            VERSION="$latest" SHA="$sha" python3 <<'PY'
           import os
           import re
           from pathlib import Path
@@ -71,23 +68,18 @@ jobs:
           path.write_text(text)
           PY
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Formula/token-bar.rb
-          git commit -m "token-bar ${latest}"
-          git push origin HEAD:main
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "### Updated token-bar to ${latest}" >> "$GITHUB_STEP_SUMMARY"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add Formula/token-bar.rb
+            git commit -m "token-bar ${latest}"
+            git push origin HEAD:main
+            echo "### Updated token-bar to ${latest}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Formula uses token-bar $latest but its bottles are missing; retrying them."
+          fi
 
-  bottle:
-    needs: update
-    if: needs.update.outputs.changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Start bottle build
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.update.outputs.version }}
-        run: |
-          gh workflow run bottle.yml --repo "$GITHUB_REPOSITORY" --ref main
-          echo "Started bottle build for token-bar ${VERSION}."
+          gh workflow run bottle.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f version="$latest"
+          echo "Started bottle build for token-bar ${latest}." >> "$GITHUB_STEP_SUMMARY"
