@@ -65,7 +65,7 @@ jobs:
               text,
           )
           text, shas = re.subn(r'  sha256 "[0-9a-f]{64}"', f'  sha256 "{os.environ["SHA"]}"', text, count=1)
-          text = re.sub(r'\n  bottle do\n.*?\n  end\n', '\n', text, count=1, flags=re.DOTALL)
+          text = re.sub(r'\n  bottle do\n.*?\n  end\n', '', text, count=1, flags=re.DOTALL)
           if urls != 1 or shas != 1:
               raise SystemExit(f"Unexpected formula structure (urls={urls}, shas={shas})")
           path.write_text(text)

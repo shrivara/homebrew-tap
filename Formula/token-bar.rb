@@ -13,7 +13,6 @@ class TokenBar < Formula
     sha256 cellar: :any_skip_relocation, arm64_sonoma:  "935caf738f016f9c8cbbdcd4b3eacb7a2f0144b834821bd69796f65ff94b5070"
   end
 
-
   def install
     system "swift", "build", "-c", "release", "--disable-sandbox"
     bin.install ".build/release/token-bar"
