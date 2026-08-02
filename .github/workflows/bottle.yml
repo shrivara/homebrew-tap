@@ -18,6 +18,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     steps:
+      - name: Remove unrelated preinstalled tap
+        run: rm -rf "$(brew --repository)/Library/Taps/aws/homebrew-tap"
       - name: Build bottle
         run: |
           brew tap shrivara/tap
@@ -43,6 +45,8 @@ jobs:
         with:
           path: bottles
           merge-multiple: true
+      - name: Remove unrelated preinstalled tap
+        run: rm -rf "$(brew --repository)/Library/Taps/aws/homebrew-tap"
       - name: Create release with bottle assets
         env:
           GH_TOKEN: ${{ github.token }}
