@@ -23,7 +23,6 @@ class TokenBar < Formula
 
   service do
     run [opt_bin/"token-bar"]
-    keep_alive true
     process_type :interactive
   end
 
