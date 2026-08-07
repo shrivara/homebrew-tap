@@ -30,6 +30,10 @@ class TokenBar < Formula
     <<~EOS
       token-bar is a menu bar app. Start it now and at every login with:
         brew services start token-bar
+
+      Upgrading from 0.8.7 or earlier? Regenerate the service once so Quit
+      does not relaunch the app:
+        brew services restart token-bar
     EOS
   end
 
