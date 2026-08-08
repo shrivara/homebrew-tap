@@ -28,11 +28,13 @@ class TokenBar < Formula
 
   def caveats
     <<~EOS
-      token-bar is a menu bar app. Start it now and at every login with:
+      Install and start Token Bar at login:
+        brew install shrivara/tap/token-bar
         brew services start token-bar
 
-      Upgrading from 0.8.7 or earlier? Regenerate the service once so Quit
-      does not relaunch the app:
+      Update Token Bar:
+        brew update
+        brew upgrade token-bar
         brew services restart token-bar
     EOS
   end
