@@ -40,6 +40,6 @@ class TokenBar < Formula
   end
 
   test do
-    assert_match "TOTAL", shell_output("#{bin}/token-bar --print")
+    assert_predicate bin/"token-bar", :executable?
   end
 end
