@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Formula/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "Formula/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Register local tap
+        run: brew tap shrivara/tap "file://$PWD"
+      - name: Check style
+        run: brew style shrivara/tap/token-bar
+      - name: Build and test formula
+        run: |
+          brew install --build-from-source shrivara/tap/token-bar
+          brew test shrivara/tap/token-bar
+          brew audit --strict shrivara/tap/token-bar

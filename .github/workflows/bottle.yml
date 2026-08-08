@@ -36,6 +36,8 @@ jobs:
             exit 1
           fi
           brew install --build-bottle shrivara/tap/token-bar
+          brew test shrivara/tap/token-bar
+          brew audit --strict shrivara/tap/token-bar
           mkdir bottles && cd bottles
           brew bottle --json \
             --root-url="https://github.com/shrivara/homebrew-tap/releases/download/bottles-token-bar-${VERSION}" \

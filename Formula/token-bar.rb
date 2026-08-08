@@ -13,12 +13,15 @@ class TokenBar < Formula
     sha256 cellar: :any_skip_relocation, arm64_sonoma:  "d236ceda04b7d235adef047d63dab717e6140058cd5a4c522491724ec81500cd"
   end
 
+  depends_on macos: :sonoma
+
   def install
     system "swift", "build", "-c", "release", "--disable-sandbox"
-    bin.install ".build/release/token-bar"
-    # SwiftPM emits resource bundles (pricing catalog, provider glyphs) that
-    # Bundle.module loads at runtime; they must sit next to the executable.
-    bin.install Dir[".build/release/*.bundle"]
+    # SwiftPM's resource bundles must sit next to the executable. Keep the
+    # complete runtime in libexec and expose only an executable wrapper in bin.
+    libexec.install ".build/release/token-bar"
+    libexec.install Dir[".build/release/*.bundle"]
+    bin.write_exec_script libexec/"token-bar"
   end
 
   service do
@@ -41,5 +44,7 @@ class TokenBar < Formula
 
   test do
     assert_predicate bin/"token-bar", :executable?
+    assert_predicate libexec/"token-bar", :executable?
+    assert_path_exists libexec/"token-bar_TokenBarCore.bundle/model-pricing.json"
   end
 end
