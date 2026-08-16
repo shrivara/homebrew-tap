@@ -5,6 +5,14 @@ class TokenBar < Formula
   sha256 "cf52edbf777dd14dcff95e8c19bafef44a42a7a20d7d5afab7cb5c030bc81196"
   license "MIT"
 
+  bottle do
+    root_url "https://github.com/shrivara/homebrew-tap/releases/download/bottles-token-bar-0.8.20"
+    rebuild 1
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:   "aa7c6aaeae96f6ccf3059521e745fa50523f66f90cb6bbf4ecfcee0a9bd4013f"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "2e68465e07ffbf3738a086b7cfd70f69a9b553ac3e91e6970b5daf4ae6dac1a1"
+    sha256 cellar: :any_skip_relocation, arm64_sonoma:  "f5a5f430ea3828eba1ea78071c149f87c27f6a1604193716478842e34b5853fc"
+  end
+
   depends_on macos: :sonoma
 
   def install
