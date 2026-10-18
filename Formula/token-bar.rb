@@ -1,17 +1,9 @@
 class TokenBar < Formula
   desc "Menu bar readout of today's AI usage (Claude Code, Codex, OpenCode, pi)"
   homepage "https://github.com/shrivara/token-bar"
-  url "https://github.com/shrivara/token-bar/archive/refs/tags/v0.8.91.tar.gz"
-  sha256 "e3c1e439ccbafd17c1ce7fb6ef89c9b9ec5c8e13a1f4ea797617b6dcbe468d14"
+  url "https://github.com/shrivara/token-bar/archive/refs/tags/v0.8.92.tar.gz"
+  sha256 "a67193cc47ec669e0d9f0469825fa01782ba86d9a0667d962aab64e9a2779597"
   license "MIT"
-
-  bottle do
-    root_url "https://github.com/shrivara/homebrew-tap/releases/download/bottles-token-bar-0.8.91"
-    rebuild 1
-    sha256 arm64_tahoe:   "5da080778bd54844b8dd1fb07a4f3e49792739ba40af8a9bade6af4a65f831ea"
-    sha256 arm64_sequoia: "a97316b759640a4dab465ffd4ae58ed548287907a08cca07dcdc4675dcc3348f"
-    sha256 arm64_sonoma:  "bd51996b244f17679a1ff64c3d8e2b464981720a4d6f32eeeed785a0360ef2aa"
-  end
 
   depends_on macos: :sonoma
 
