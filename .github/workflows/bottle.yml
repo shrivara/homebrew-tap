@@ -1,6 +1,6 @@
 name: Bottle
 
-# Builds prebuilt bottles for token-bar so `brew install` needs no Swift toolchain.
+# Builds prebuilt bottles for macOS 15/26; macOS 14 installs can build from source.
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15, macos-26]
+        os: [macos-15, macos-26]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
